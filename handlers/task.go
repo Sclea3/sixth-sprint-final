@@ -22,7 +22,11 @@ func GetTasks(w http.ResponseWriter, _ *http.Request) {
 	// так как все успешно, то статус OK
 	w.WriteHeader(http.StatusOK)
 	// записываем сериализованные в JSON данные в тело ответа
-	w.Write(resp)
+	_, err = w.Write(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func PostTask(w http.ResponseWriter, r *http.Request) {
@@ -34,10 +38,13 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+	if _, exists := tasks[newTask.ID]; exists {
+		http.Error(w, "Task already exists", http.StatusBadRequest)
+		return
+	}
 	tasks[newTask.ID] = newTask
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newTask)
 }
 
 func GetTaskByID(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +72,7 @@ func DeleteTaskByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	delete(tasks, id)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
 
